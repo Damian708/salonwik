@@ -1232,23 +1232,23 @@
         
         <h1>Statystyki Salonu</h1>
         
-        <div class="stats-container">
+        <div class="stats-container" id="salon-stats-container">
             <div class="stat-box">
                 <h3>Łączne zarobki</h3>
-                <div class="stat-value">12,540 zł</div>
+                <div class="stat-value"><span id="total-earnings">0</span> zł</div>
                 <div class="stat-label">W tym miesiącu</div>
                 <button class="reset-stats" onclick="resetAllStats()">Wyzeruj</button>
             </div>
             
             <div class="stat-box">
                 <h3>Wykonane usługi</h3>
-                <div class="stat-value">187</div>
+                <div class="stat-value"><span id="total-services">0</span></div>
                 <div class="stat-label">W tym miesiącu</div>
             </div>
             
             <div class="stat-box">
                 <h3>Nowi klienci</h3>
-                <div class="stat-value">42</div>
+                <div class="stat-value"><span id="total-new-clients">0</span></div>
                 <div class="stat-label">W tym miesiącu</div>
             </div>
         </div>
@@ -1891,7 +1891,8 @@
                 clientsData.push({
                     name: clientName,
                     phone: clientPhone,
-                    notes: ''
+                    notes: '',
+                    joinDate: new Date().toISOString() // Dodaj datę rejestracji
                 });
                 localStorage.setItem('clientsData', JSON.stringify(clientsData));
                 renderClientsList();
@@ -2280,7 +2281,12 @@
                 return;
             }
             
-            clientsData.push({ name, phone, notes });
+            clientsData.push({ 
+                name, 
+                phone, 
+                notes,
+                joinDate: new Date().toISOString() // Dodaj datę rejestracji
+            });
             localStorage.setItem('clientsData', JSON.stringify(clientsData));
             
             document.getElementById('new-client-name').value = '';
@@ -2407,29 +2413,73 @@
                         updateDaySummary();
                     }
                 }
+                
+                renderEmployeeStats();
             }
         }
         
+        // Nowe funkcje dla statystyk salonu
+        function calculateSalonStats() {
+            let totalEarnings = 0;
+            let totalServices = 0;
+            const currentMonth = new Date().getMonth() + 1;
+            const currentYear = new Date().getFullYear();
+            
+            // Przejdź przez wszystkie wizyty wszystkich pracowników
+            for (const employeeId in appointmentsData) {
+                const employeeAppointments = appointmentsData[employeeId];
+                for (const dateKey in employeeAppointments) {
+                    // Sprawdź, czy data jest w bieżącym miesiącu i roku
+                    const [year, month] = dateKey.split('-').map(Number);
+                    if (year === currentYear && month === currentMonth) {
+                        const appointments = employeeAppointments[dateKey];
+                        totalServices += appointments.length;
+                        appointments.forEach(app => {
+                            totalEarnings += app.price || 0;
+                        });
+                    }
+                }
+            }
+            
+            // Oblicz nowych klientów w bieżącym miesiącu
+            const newClients = clientsData.filter(client => {
+                if (!client.joinDate) return false;
+                const joinDate = new Date(client.joinDate);
+                return joinDate.getMonth() + 1 === currentMonth && joinDate.getFullYear() === currentYear;
+            }).length;
+            
+            return { totalEarnings, totalServices, newClients };
+        }
+
         function renderEmployeeStats() {
             const container = document.getElementById('employee-stats-container');
             container.innerHTML = '';
             
+            // Oblicz statystyki salonu
+            const salonStats = calculateSalonStats();
+            document.getElementById('total-earnings').textContent = salonStats.totalEarnings;
+            document.getElementById('total-services').textContent = salonStats.totalServices;
+            document.getElementById('total-new-clients').textContent = salonStats.newClients;
+            
+            // Dla każdego pracownika oblicz statystyki
             employeesData.forEach(employee => {
                 const employeeId = employee.id.toString();
                 const employeeData = appointmentsData[employeeId] || {};
                 
-                // Oblicz statystyki
-                let totalEarnings = 0;
-                let appointmentCount = 0;
-                let newClients = 0;
+                let employeeEarnings = 0;
+                let employeeServices = 0;
+                const currentMonth = new Date().getMonth() + 1;
+                const currentYear = new Date().getFullYear();
                 
                 for (const dateKey in employeeData) {
-                    const appointments = employeeData[dateKey];
-                    appointmentCount += appointments.length;
-                    
-                    appointments.forEach(appointment => {
-                        totalEarnings += appointment.price || 0;
-                    });
+                    const [year, month] = dateKey.split('-').map(Number);
+                    if (year === currentYear && month === currentMonth) {
+                        const appointments = employeeData[dateKey];
+                        employeeServices += appointments.length;
+                        appointments.forEach(app => {
+                            employeeEarnings += app.price || 0;
+                        });
+                    }
                 }
                 
                 // Statystyki dla tego pracownika
@@ -2437,12 +2487,10 @@
                 statBox.className = 'stat-box';
                 statBox.innerHTML = `
                     <h3>${employee.name}</h3>
-                    <div class="stat-value">${totalEarnings} zł</div>
+                    <div class="stat-value">${employeeEarnings} zł</div>
                     <div class="stat-label">Łączne zarobki</div>
-                    <div class="stat-value">${appointmentCount}</div>
+                    <div class="stat-value">${employeeServices}</div>
                     <div class="stat-label">Wykonane usługi</div>
-                    <div class="stat-value">${newClients}</div>
-                    <div class="stat-label">Nowi klienci</div>
                 `;
                 
                 container.appendChild(statBox);
