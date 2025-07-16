@@ -1,4 +1,4 @@
-const CACHE_NAME = 'salonwik-cache-v1';
+const CACHE_NAME = 'salon;
 const staticAssets = [
   '/salonwik/',
   '/salonwik/index.html',
