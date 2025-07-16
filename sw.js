@@ -1,9 +1,17 @@
-const CACHE_NAME = 'salon-app-v1';
-const urlsToCache = [
+
+const staticAssets = [
   '/salonwik/',
   '/salonwik/index.html',
   '/salonwik/manifest.json',
-  '/salonwik/icon-192x192.png'
+  '/salonwik/icon-128x128.png',
+  '/salonwik/icon-144x144.png',
+  '/salonwik/icon-152x152.png',
+  '/salonwik/icon-180x180.png',
+  '/salonwik/icon-256x256.png',
+  '/salonwik/icon-384x384.png',
+  '/salonwik/icon-512x512.png'
+];
+
 ];
 
 self.addEventListener('install', (event) => {
