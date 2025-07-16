@@ -12,8 +12,6 @@ const staticAssets = [
   '/salonwik/icon-512x512.png'
 ];
 
-];
-
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
