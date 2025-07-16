@@ -3,7 +3,7 @@ const urlsToCache = [
   '/salonwik/',
   '/salonwik/index.html',
   '/salonwik/manifest.json',
-  '/salonwik/icons/icon-192x192.png'
+  '/salonwik/icon-192x192.png'
 ];
 
 self.addEventListener('install', (event) => {
