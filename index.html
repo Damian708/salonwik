@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonogram Salonu Kosmetycznego</title>
+    <meta name="theme-color" content="#3498db">
+    <meta name="description" content="Profesjonalne zarządzanie harmonogramem salonu kosmetycznego">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Ekran logowania -->
+    <div id="login-view" class="view active-view login-container">
+        <div class="logo-header">
+            <h1>Harmonogram Salonu</h1>
+            <p>Profesjonalne zarządzanie wizytami</p>
+        </div>
+        <input type="password" id="password" placeholder="Wprowadź hasło">
+        <button onclick="login()">Zaloguj</button>
+        <p id="login-error"></p>
+    </div>
+
+    <!-- Wybór pracownika -->
+    <div id="employee-view" class="view employee-select">
+        <div class="logo-header">
+            <h1>Wybierz pracownika</h1>
+            <p>Kontynuuj do swojego harmonogramu</p>
+        </div>
+        
+        <div class="employee-list" id="employee-list">
+            <!-- Lista pracowników będzie dodana dynamicznie -->
+        </div>
+    </div>
+
+    <!-- Główny kalendarz -->
+    <div id="calendar-view" class="view container">
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="showView('calendar-view')">Kalendarz</div>
+            <div class="nav-tab" onclick="showView('clients-view')">Baza Klientów</div>
+            <div class="nav-tab" onclick="showView('employees-view')">Pracownicy</div>
+            <div class="nav-tab" onclick="showView('stats-view')">Statystyki</div>
+        </div>
+        
+        <div class="employee-header">
+            <div>
+                <h1>Harmonogram Pracy</h1>
+                <h2 id="employee-name" style="color: #3498db;"></h2>
+            </div>
+            <button id="switch-employee-btn" onclick="switchEmployee()">Zmień pracownika</button>
+        </div>
+        
+        <div class="calendar-header">
+            <div class="calendar-nav">
+                <button id="prev-month">← Poprz.</button>
+                <h2 id="current-month">Lipiec 2024</h2>
+                <button id="next-month">Nast. →</button>
+            </div>
+            
+            <div>
+                <button onclick="showCurrentDate()">Dzisiaj</button>
+            </div>
+        </div>
+        
+        <div class="calendar" id="calendar">
+            <!-- Nagłówki dni tygodnia będą dodane dynamicznie -->
+        </div>
+        
+        <div class="stats-container">
+            <div class="stat-box">
+                <h3>Zarobki miesiąca</h3>
+                <div class="stat-value"><span id="monthly-earnings">0</span> zł</div>
+                <div class="stat-label">Łącznie w tym miesiącu</div>
+            </div>
+            
+            <div class="stat-box">
+                <h3>Nadchodzące wizyty</h3>
+                <div class="stat-value"><span id="upcoming-appointments">0</span></div>
+                <div class="stat-label">W najbliższych 7 dniach</div>
+            </div>
+            
+            <div class="stat-box">
+                <h3>Nowi klienci</h3>
+                <div class="stat-value"><span id="new-clients">0</span></div>
+                <div class="stat-label">W tym miesiącu</div>
+            </div>
+        </div>
+        
+        <div class="day-details" id="day-details">
+            <div class="day-navigation">
+                <button onclick="navigateDay(-1)">← Poprz. dzień</button>
+                <h3 id="selected-day">24 Lipca 2024</h3>
+                <button onclick="navigateDay(1)">Nast. dzień →</button>
+            </div>
+            
+            <button onclick="hideDayDetails()">← Wróć do kalendarza</button>
+            
+            <div class="add-appointment">
+                <h3>Dodaj wizytę</h3>
+                
+                <div class="autocomplete-container">
+                    <input type="text" id="client-name" placeholder="Imię klienta" autocomplete="off">
+                    <div id="autocomplete-list" class="autocomplete-items"></div>
+                </div>
+                
+                <input type="text" id="client-phone" placeholder="Numer telefonu">
+                
+                <h4>Wybierz usługę:</h4>
+                <div class="service-container" id="service-options-container">
+                    <!-- Usługi będą renderowane dynamicznie -->
+                </div>
+                
+                <div class="selected-services-list" id="selected-services-list" style="display: none;">
+                    <h4>Wybrane usługi:</h4>
+                    <div id="selected-services-container"></div>
+                </div>
+                
+                <div class="time-inputs">
+                    <select id="start-hour">
+                        <option value="">Godzina rozpoczęcia</option>
+                    </select>
+                </div>
+                
+                <div class="duration-slider-container">
+                    <h4>Czas trwania usługi:</h4>
+                    <input type="range" id="duration-slider" min="5" max="300" step="5" value="30" class="duration-slider">
+                    <div class="duration-value">
+                        <span>5 min</span>
+                        <span id="duration-display" class="duration-display">30 min</span>
+                        <span>5 godz.</span>
+                    </div>
+                </div>
+                
+                <button onclick="addAppointment()">Dodaj wizytę</button>
+                <p id="time-error" style="color:#e74c3c;"></p>
+            </div>
+            
+            <h3>Harmonogram dnia</h3>
+            <div class="timeline-container" id="timeline-container"></div>
+            
+            <h3>Lista wizyt</h3>
+            <div class="table-wrapper">
+                <div class="day-schedule" id="day-schedule">
+                    <!-- Harmonogram dnia w dwóch kolumnach -->
+                </div>
+            </div>
+            
+            <div class="summary">
+                <h3>Podsumowanie dnia</h3>
+                <p>Liczba wizyt: <span id="day-count">0</span></p>
+                <p>Zarobki: <span id="day-earnings">0</span> zł</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Baza klientów -->
+    <div id="clients-view" class="view container">
+        <div class="nav-tabs">
+            <div class="nav-tab" onclick="showView('calendar-view')">Kalendarz</div>
+            <div class="nav-tab active" onclick="showView('clients-view')">Baza Klientów</div>
+            <div class="nav-tab" onclick="showView('employees-view')">Pracownicy</div>
+            <div class="nav-tab" onclick="showView('stats-view')">Statystyki</div>
+        </div>
+        
+        <h1>Baza Klientów</h1>
+        
+        <div class="client-form">
+            <h3>Dodaj nowego klienta</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Imię i nazwisko</label>
+                    <input type="text" id="new-client-name" placeholder="Imię i nazwisko">
+                </div>
+                <div class="form-group">
+                    <label>Numer telefonu</label>
+                    <input type="text" id="new-client-phone" placeholder="Numer telefonu">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Notatki</label>
+                <textarea id="new-client-notes" placeholder="Notatki o kliencie" rows="3"></textarea>
+            </div>
+            <button onclick="addClient()">Dodaj klienta</button>
+        </div>
+        
+        <div class="table-wrapper">
+            <table class="clients-table">
+                <thead>
+                    <tr>
+                        <th>Imię i nazwisko</th>
+                        <th>Numer telefonu</th>
+                        <th>Notatki</th>
+                        <th>Akcje</th>
+                    </tr>
+                </thead>
+                <tbody id="clients-list">
+                    <!-- Klienci będą dodawani dynamicznie -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Zarządzanie pracownikami -->
+    <div id="employees-view" class="view container">
+        <div class="nav-tabs">
+            <div class="nav-tab" onclick="showView('calendar-view')">Kalendarz</div>
+            <div class="nav-tab" onclick="showView('clients-view')">Baza Klientów</div>
+            <div class="nav-tab active" onclick="showView('employees-view')">Pracownicy</div>
+            <div class="nav-tab" onclick="showView('stats-view')">Statystyki</div>
+        </div>
+        
+        <h1>Zarządzanie pracownikami</h1>
+        
+        <div class="add-appointment">
+            <h3>Dodaj nowego pracownika</h3>
+            <input type="text" id="new-employee-name" placeholder="Imię i nazwisko pracownika">
+            <button onclick="addEmployee()" style="margin-top: 15px;">Dodaj pracownika</button>
+        </div>
+        
+        <div class="table-wrapper">
+            <table class="clients-table">
+                <thead>
+                    <tr>
+                        <th>Imię i nazwisko</th>
+                        <th>Akcje</th>
+                    </tr>
+                </thead>
+                <tbody id="employees-table">
+                    <!-- Lista pracowników będzie dodana dynamicznie -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Statystyki -->
+    <div id="stats-view" class="view container">
+        <div class="nav-tabs">
+            <div class="nav-tab" onclick="showView('calendar-view')">Kalendarz</div>
+            <div class="nav-tab" onclick="showView('clients-view')">Baza Klientów</div>
+            <div class="nav-tab" onclick="showView('employees-view')">Pracownicy</div>
+            <div class="nav-tab active" onclick="showView('stats-view')">Statystyki</div>
+        </div>
+        
+        <h1>Statystyki Salonu</h1>
+        
+        <div class="stats-container" id="salon-stats-container">
+            <div class="stat-box">
+                <h3>Łączne zarobki</h3>
+                <div class="stat-value"><span id="total-earnings">0</span> zł</div>
+                <div class="stat-label">W tym miesiącu</div>
+            </div>
+            
+            <div class="stat-box">
+                <h3>Wykonane usługi</h3>
+                <div class="stat-value"><span id="total-services">0</span></div>
+                <div class="stat-label">W tym miesiącu</div>
+            </div>
+            
+            <div class="stat-box">
+                <h3>Nowi klienci</h3>
+                <div class="stat-value"><span id="total-new-clients">0</span></div>
+                <div class="stat-label">W tym miesiącu</div>
+            </div>
+        </div>
+        
+        <div class="summary" style="margin-top: 30px;">
+            <h3>Statystyki pracowników</h3>
+            <div id="employee-stats-container" style="margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+                <!-- Statystyki pracowników będą dodane dynamicznie -->
+            </div>
+        </div>
+        
+        <!-- Podsumowanie roczne -->
+        <div class="yearly-summary-section">
+            <h3>Podsumowanie roczne</h3>
+            <div class="form-group">
+                <label for="year-select">Wybierz rok:</label>
+                <select id="year-select" onchange="renderYearlyStats(this.value)"></select>
+            </div>
+            <div id="yearly-stats-container" class="stats-container">
+                <!-- Statystyki dla wybranego roku będą wyświetlane tutaj -->
+            </div>
+        </div>
+        
+        <!-- Podsumowanie lat -->
+        <div class="year-summary-section">
+            <h3>Podsumowanie lat</h3>
+            <div class="table-wrapper">
+                <table class="clients-table year-summary-table">
+                    <thead>
+                        <tr>
+                            <th>Rok</th>
+                            <th>Łączne zarobki</th>
+                            <th>Liczba usług</th>
+                            <th>Nowi klienci</th>
+                        </tr>
+                    </thead>
+                    <tbody id="year-summary-table">
+                        <!-- Tabela z podsumowaniami rocznymi -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Sekcja resetowania statystyk -->
+        <div class="reset-section">
+            <div class="reset-warning">⚠️ Uwaga: Operacja nieodwracalna!</div>
+            <div class="reset-description">
+                Kliknięcie tego przycisku spowoduje wyzerowanie wszystkich statystyk zarobków.<br>
+                Dane wizyt zostaną zachowane, ale wszystkie ceny zostaną ustawione na 0 zł.
+            </div>
+            <button class="reset-stats" onclick="resetAllStats()">Wyzeruj wszystkie statystyki</button>
+        </div>
+    </div>
+
+    <!-- Modal do edycji wizyty -->
+    <div id="edit-appointment-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeEditModal()">&times;</span>
+            <h3>Edytuj wizytę</h3>
+            
+            <div class="autocomplete-container">
+                <input type="text" id="edit-client-name" placeholder="Imię klienta" autocomplete="off">
+                <div id="edit-autocomplete-list" class="autocomplete-items"></div>
+            </div>
+            
+            <input type="text" id="edit-client-phone" placeholder="Numer telefonu">
+            
+            <h4>Wybierz usługę:</h4>
+            <div class="service-container" id="edit-service-options-container">
+                <!-- Usługi będą renderowane dynamicznie -->
+            </div>
+            
+            <div class="selected-services-list" id="edit-selected-services-list" style="display: none;">
+                <h4>Wybrane usługi:</h4>
+                <div id="edit-selected-services-container"></div>
+            </div>
+            
+            <div class="time-inputs">
+                <select id="edit-start-hour">
+                    <option value="">Godzina rozpoczęcia</option>
+                </select>
+            </div>
+            
+            <div class="duration-slider-container">
+                <h4>Czas trwania usługi:</h4>
+                <input type="range" id="edit-duration-slider" min="5" max="300" step="5" value="30" class="duration-slider">
+                <div class="duration-value">
+                    <span>5 min</span>
+                    <span id="edit-duration-display" class="duration-display">30 min</span>
+                    <span>5 godz.</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Cena (zł):</label>
+                <input type="number" id="edit-price" placeholder="Cena">
+            </div>
+            
+            <button onclick="saveEditedAppointment()">Zapisz zmiany</button>
+            <p id="edit-time-error" style="color:#e74c3c;"></p>
+        </div>
+    </div>
+
+    <!-- Przycisk instalacji PWA -->
+    <button id="installButton" aria-label="Install app">Zainstaluj aplikację</button>
+
+    <!-- Firebase SDK -->
+    <script type="module" src="firebase.js"></script>
+    
+    <!-- Główny skrypt aplikacji -->
+    <script src="script.js"></script>
+</body>
+</html>
