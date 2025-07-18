@@ -4,10 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Kalendarz salonu</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-</head>
+  </head>
 <body>
   <h1>Wizyty</h1>
   <div id="login-box">
@@ -23,7 +20,13 @@
     <button onclick="addAppointment()">Dodaj wizytę</button>
     <ul id="appointments"></ul>
   </div>
-  <script>
+
+  <script type="module">
+    // Importuj moduły Firebase v9
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
+    import { getFirestore, collection, doc, addDoc, onSnapshot, query, orderBy, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
+
     const firebaseConfig = {
       apiKey: "AIzaSyBM4WEeOSVQgk6XRUeX0FtKUB3n0fYhXZU",
       authDomain: "salo.firebaseapp.com",
@@ -33,37 +36,56 @@
       appId: "1:345207567750:web:fc8c38b347501a2f457ea6"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    // Inicjalizacja Firebase App
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app); // Pobranie instancji Auth
+    const db = getFirestore(app); // Pobranie instancji Firestore
 
-    db.enableIndexedDbPersistence().catch((err) => {
-      console.warn("Persistence error:", err.code);
+    // Dodano logi po inicjalizacji
+    console.log("Firebase App initialized:", app);
+    console.log("Auth instance:", auth);
+    console.log("Firestore DB instance:", db);
+
+    // Użycie enableIndexedDbPersistence z nowym API
+    enableIndexedDbPersistence(db).catch((err) => {
+      console.warn("Persistence error:", err.code, err); // Dodano err w logu
     });
 
-    auth.onAuthStateChanged(user => {
+    onAuthStateChanged(auth, user => { // Zmieniono z auth.onAuthStateChanged
       if (user) {
         document.getElementById("login-box").style.display = "none";
         document.getElementById("app").style.display = "block";
         document.getElementById("user-email").innerText = user.email;
+        console.log("User logged in:", user.email, "UID:", user.uid); // Nowy log
         loadAppointments(user.uid);
       } else {
         document.getElementById("login-box").style.display = "block";
         document.getElementById("app").style.display = "none";
+        console.log("User logged out or no user."); // Nowy log
       }
     });
 
-    function login() {
+    async function login() { // Zmieniono na async
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-      auth.signInWithEmailAndPassword(email, password).catch(error => {
+      console.log("Attempting to log in with:", email); // Nowy log
+      try {
+        await signInWithEmailAndPassword(auth, email, password); // Zmieniono z auth.signInWithEmailAndPassword
+        console.log("Login successful!"); // Nowy log
+      } catch (error) {
         console.error("Błąd logowania:", error);
         alert("Błąd logowania: " + error.message);
-      });
+      }
     }
 
-    function logout() {
-      auth.signOut();
+    async function logout() { // Zmieniono na async
+      try {
+        await signOut(auth); // Zmieniono z auth.signOut
+        console.log("Logged out successfully!"); // Nowy log
+      } catch (error) {
+        console.error("Błąd wylogowania:", error);
+        alert("Błąd wylogowania: " + error.message);
+      }
     }
 
     async function addAppointment() {
@@ -72,21 +94,24 @@
       const service = document.getElementById("service").value;
       const date = document.getElementById("date").value;
 
-      // Logowanie wartości przed próbą zapisu
-      console.log("Attempting to add appointment:");
+      // Rozszerzone logowanie wartości przed próbą zapisu
+      console.log("--- Debugging addAppointment ---");
+      console.log("Current User object:", user);
       console.log("Current User UID:", user ? user.uid : "No user logged in");
-      console.log("Client:", client);
-      console.log("Service:", service);
-      console.log("Date:", date);
+      console.log("Client value from input:", client);
+      console.log("Service value from input:", service);
+      console.log("Date value from input:", date);
+      console.log("--- End Debugging ---");
 
       if (user && client && service && date) {
         try {
-          await db.collection("appointments").doc(user.uid).collection("list").add({
+          // Użycie nowej składni dla Firestore (collection, doc, addDoc)
+          const docRef = await addDoc(collection(doc(db, "appointments", user.uid), "list"), {
             client,
             service,
             date
           });
-          console.log("Wizyta dodana pomyślnie!");
+          console.log("Wizyta dodana pomyślnie! Document ID:", docRef.id);
           // Oczyść pola po dodaniu
           document.getElementById("client").value = "";
           document.getElementById("service").value = "";
@@ -94,33 +119,33 @@
           loadAppointments(user.uid);
         } catch (error) {
           console.error("Błąd podczas dodawania wizyty:", error);
-          alert("Wystąpił błąd podczas dodawania wizyty. Sprawdź konsolę, aby uzyskać szczegóły. Prawdopodobnie problem z regułami bezpieczeństwa Firestore.");
+          alert("Wystąpił błąd podczas dodawania wizyty. Sprawdź konsolę, aby uzyskać szczegóły. Prawdopodobnie problem z regułami bezpieczeństwa Firestore lub konfiguracją.");
         }
       } else {
         alert("Wypełnij wszystkie pola (Klient, Usługa, Data)!");
-        console.warn("Brak wszystkich wymaganych danych do dodania wizyty.");
+        console.warn("Brak wszystkich wymaganych danych do dodania wizyty. Sprawdź logi powyżej.");
       }
     }
 
     function loadAppointments(uid) {
-      db.collection("appointments").doc(uid).collection("list")
-        .orderBy("date", "desc")
-        .onSnapshot(snapshot => {
-          const list = document.getElementById("appointments");
-          list.innerHTML = "";
-          if (snapshot.empty) {
-            console.log("Brak wizyt dla tego użytkownika.");
-          }
-          snapshot.forEach(doc => {
-            const item = document.createElement("li");
-            const data = doc.data();
-            item.textContent = `${data.date} — ${data.client} — ${data.service}`;
-            list.appendChild(item);
-          });
-        }, error => {
-          console.error("Błąd podczas ładowania wizyt:", error);
-          alert("Wystąpił błąd podczas ładowania wizyt. Sprawdź konsolę.");
+      // Użycie nowej składni dla Firestore (collection, doc, query, orderBy, onSnapshot)
+      const q = query(collection(doc(db, "appointments", uid), "list"), orderBy("date", "desc"));
+      onSnapshot(q, (snapshot) => {
+        const list = document.getElementById("appointments");
+        list.innerHTML = "";
+        if (snapshot.empty) {
+          console.log("Brak wizyt dla tego użytkownika.");
+        }
+        snapshot.forEach(doc => {
+          const item = document.createElement("li");
+          const data = doc.data();
+          item.textContent = `${data.date} — ${data.client} — ${data.service}`;
+          list.appendChild(item);
         });
+      }, (error) => { // Obsługa błędu dla onSnapshot
+        console.error("Błąd podczas ładowania wizyt:", error);
+        alert("Wystąpił błąd podczas ładowania wizyt. Sprawdź konsolę.");
+      });
     }
   </script>
 </body>
